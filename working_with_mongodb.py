@@ -452,3 +452,234 @@ db.autos.find({"modelYears" : 1980}).pretty() [this prints all the documents in 
 """
 db.autos.find({"modelYears" : {"$in" : [1965, 1966, 1967]}}).count()
 """
+#this works even if modelYears field is not an array value field
+
+#QUIZ
+#!/usr/bin/env python
+"""
+Your task is to write a query that will return all cars manufactured by
+"Ford Motor Company" that are assembled in Germany, United Kingdom, or Japan.
+Please modify only 'in_query' function, as only that will be taken into account.
+
+Your code will be run against a MongoDB instance that we have provided.
+If you want to run this code locally on your machine,
+you have to install MongoDB, download and insert the dataset.
+For instructions related to MongoDB setup and datasets please see Course Materials.
+"""
+
+
+def in_query():
+    # Modify the below line with your query; try to use the $in operator.
+    query = {"manufacturer":"Ford Motor Company","assembly":{"$in":["Germany","United Kingdom","Japan"]}}
+    
+    return query
+
+
+# Do not edit code below this line in the online code editor.
+# Code here is for local use on your own computer.
+def get_db():
+    from pymongo import MongoClient
+    client = MongoClient('localhost:27017')
+    db = client.examples
+    return db
+
+
+if __name__ == "__main__":
+
+    db = get_db()
+    query = in_query()
+    autos = db.autos.find(query, {"name":1, "manufacturer":1, "assembly": 1, "_id":0})
+
+    print "Found autos:", autos.count()
+    import pprint
+    for a in autos:
+        pprint.pprint(a)
+
+
+########################
+#ALL OPERATOR
+#######################
+
+#example using mongo shell
+#all of the values mentioned in the array should be a part of the document
+"""
+db.autos.find({"model_years":{"$all" : [1965,1966,1967,1968,1969,1970]}}).pretty()
+"""
+
+########################
+#DOT NOTATION
+#######################
+#auditing of data is necessay even after uploading data into the database
+"""
+db.autos.find({"dimensions.weight" : {"$gt" : 5000}}).count()
+db.tweets.find(["entities.hashtags" : {"$ne" : []}},{"entities.hashtags.text" : 1, "id" : 0])
+"""
+#dot notation enables to query within the sub-document structure in a very fast manner
+
+#QUIZ
+
+#!/usr/bin/env python
+"""
+Your task is to write a query that will return all cars with width dimension
+greater than 2.5. Please modify only the 'dot_query' function, as only that
+will be taken into account.
+
+Your code will be run against a MongoDB instance that we have provided.
+If you want to run this code locally on your machine, you will need to install
+MongoDB, download and insert the dataset. For instructions related to MongoDB
+setup and datasets, please see the Course Materials.
+"""
+
+
+def dot_query():
+    # Edit the line below with your query - try to use dot notation.
+    # You can check out example_auto.txt for an example of the document
+    # structure in the collection.
+    query = {"dimensions.width":{"$gt":2.5}}
+    return query
+
+
+# Do not edit code below this line in the online code editor.
+# Code here is for local use on your own computer.
+def get_db():
+    from pymongo import MongoClient
+    client = MongoClient('localhost:27017')
+    db = client.examples
+    return db
+
+
+if __name__ == "__main__":
+    db = get_db()
+    query = dot_query()
+    cars = db.cars.find(query)
+
+    print "Printing first 3 results\n"
+    import pprint
+    for car in cars[:3]:
+        pprint.pprint(car)
+
+#example_auto.txt
+"""
+{
+	"_id" : ObjectId("52fd438b5a98d65507d288cf"),
+	"engine" : "Crawler-transporter__1",
+	"dimensions" : {
+		"width" : 34.7472,
+		"length" : 39.9288,
+		"weight" : 2721000
+	},
+	"transmission" : "16 traction motors powered by four  generators",
+	"modelYears" : [ ],
+	"productionYears" : [ ],
+	"manufacturer" : "Marion Power Shovel Company",
+	"name" : "Crawler-transporter"
+}
+"""
+
+########################
+#UPDATES
+#######################
+from pymongo import MongoClient
+import pprint
+
+client = MongoClient("mongodb://localhost:27017")
+
+db = client.examples
+
+def main():
+    #find_one does not return a cursor but a single document  after search
+    city = db.cities.find_one({"name" : "Munchen",
+                                "country" : "Germany" })
+    city["isoCountryCode"] = "DEU"
+    db.cities.save(city) #save is a method on collections document
+    #if the object passed here (i.e. city already has a _id,) then the save command replaces the document in the database with the object that is passed
+    #if the document does not have an _id field or if the _id field of the document is not present in the database, then the database will create a new document of the object
+
+if __name__ == '__main__':
+    main()
+
+
+########################
+#SET UNSET
+#######################
+# -*- coding: utf-8 -*-
+#The examples in this section modify only a single document
+
+from pymongo import MongoClient
+import pprint
+
+client = MongoClient("mongodb://localhost:27017")
+
+db = client.examples
+
+def find():
+    #enter the ü by pressing Ctrl + K + u + : in vim
+    city = db.cities.update({ "name" : "München",
+                             "country" : "Germany" },
+                            {"$set" : {
+                                "isoCountryCode" : "DEU"}})
+    #update works only on one document
+    #the semantics of $set is that if the document specified here does not have the isoCountryCode field, this field will be added & if it  already has the isoCountryCode field, it will be updated to the DEU entry
+    #an alternative find function is given below
+
+
+def find():
+    #the $unset command does the reverse of the set command. It does not set a value but is used to empty the field if isoCountryCode is present & in its absence will add an empty field
+    city = db.cities.update({ "name" : "München",
+                             "country" : "Germany" },
+                            {"$unset" : {
+                                "isoCountryCode" : "DEU"}})
+
+if __name__ == '__main__':
+
+#mongo shell command [language of mongo shell is javascript]
+"""
+db.cities.findOne({"name" : "München", "country" : "Germany" }).pretty()
+"""
+
+#DON'T DO THIS
+
+def find():
+    #enter the ü by pressing Ctrl + K + u + : in vim
+    city = db.cities.update({ "name" : "München",
+                             "country" : "Germany" },
+                            {"isoCountryCode" : "DEU"})
+#if this is done, all the documents that match the query will be replaced by the isoCountryCode document
+
+
+########################
+#MULTI-UPDATE
+#######################
+
+#the following command updates multiple documents, a sort of global modification
+def find():
+    city = db.cities.update({ "name" : "München",
+                             "country" : "Germany" },
+                            {"$set" : {
+                                "isoCountryCode" : "DEU"}},multi=True)
+
+#in mongodb the document schemas are designed in such a way that they match the access patterns. This way, to access any data, the database needs to be read only once. This gives HIGH PERFORMANCE and GOOD SCALE-UP
+
+#mongo shell command
+"""
+db.cities.find({ "country" : "Germany" })
+"""
+#operators other than $set can also be used in the same way as above
+
+
+########################
+#REMOVING DOCUMENTS
+#######################
+
+#mongo shell commands below
+
+"""
+db.cities.remove()
+db.cities.drop()
+db.cities.find({"name":"Chicago"})
+db.cities.remove({"name":"Chicago"})
+db.cities.find({"name":{"exists" : 0}})
+db.cities.remove({"name":{"exists" : 0}})
+"""
+
+
