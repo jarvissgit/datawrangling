@@ -1,0 +1,5 @@
+[user]
+	name = J P
+	email = km4gck@gmail.com
+[alias]
+	gr = log --graph --decorate --oneline alias
