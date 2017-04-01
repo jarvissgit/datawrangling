@@ -648,3 +648,132 @@ if __name__ == '__main__':
     "population" : 1140
 }
 """
+#-----------------------------------------------------------
+# INDEXES
+#----------------------------------------------------------
+
+# collection scans in mongodb will be very slow if the database is large
+# the index keys are kept in structures called B-trees
+# indexes can be single key or multiple keys
+# for an index to be used in mongodb the left-most key needs to be given
+# reads become faster with an index but writes become slower because the index also needs to be updated
+# indexes take up space on disk and also require time to be updated
+# Indexes are created on the most likely way the database will be queried
+
+
+#-----------------------------------------------------------
+# USING INDEXES
+#----------------------------------------------------------
+
+# mongo shell commands below
+"""
+db.ensureIndex({"tg" : 1})
+db.nodes.find({"tg" : {"k" : "name", "v" : "Giordanos"}}).pretty()
+"""
+
+#-----------------------------------------------------------
+# GEOSPATIAL INDEXES
+#----------------------------------------------------------
+
+# Requirement for geospatial indexes
+
+#location : [x,y]
+#ensureIndex({'location' : ..}) (will have to specify a direction for indexing)
+#$near (for querying)
+
+"""This program parses an OSM XML file and inserts the data in a MongoDB database"""
+
+import sys
+import os
+import time
+import pymongo
+from datetime import datetime
+#from xml.sax import make_parser
+#from xml.sax.handler import ContentHandler
+from pymongo import Connection
+from xml.etree.cElementTree import iterparse
+
+class OsmHandler(object):
+    """Base class for parsing OSM XML data"""
+    def __init__(self, client):
+        self.client = client
+
+        self.client.osm.nodes.ensure_index([('loc', pymongo.GEO2D)])
+        self.client.osm.nodes.ensure_index([('id'. pymongo.ASCENDING),
+                                            ('version', pymongo.DESCENDING)
+
+        self.client.osm.ways.ensure_index([('loc', pymongo.GEO2D)])
+        self.client.osm.ways.ensure_index([('id', pymongo.ASCENDING),
+                                           ('version', pymongo.DESCENDING)]
+
+        self.client.osm.relations.ensure_index([('id', pymongo.ASCENDING),
+                                                ('version', pymongo.DESCENDING)]
+
+        sys.stdout.write(self.lastStatString)
+
+def fillDefault(self, attrs):
+    ts = None
+    """Fill in default record values"""
+    record = dict(_id=long(attrs['id']),
+                  #ts=self.isoToTimestamp(attrs['timestamp']),
+                  ts=attrs['timestamp'] if 'timestamp' in attrs else
+                  tg=[]
+                  ky=[])
+    #record['_id'] = long(attrs['id'])
+    #record['timestamp'] = self.isoToTimestamp(attrs['timestamp'])
+    #record['tags'] = []
+    #record['keys'] = []
+    if attrs.has_key('user'):
+        record['un'] = attrs['user']
+    if attrs.has_key('uid'):
+        record['ui'] =long(attrs['uid'])
+    if attrs.has_key('version'):
+        record['v'] = int(attrs['version'])
+    if attrs.has_key('changeset'):
+        record['ch'] = long(attrs['changeset'])
+    return record
+
+def isoToTimestamp(self, isotime):
+    """Parse a date and return a time tuple"""
+    t = datetime.strptime(isotime, "%Y-%m-%dT%H:%M:%SZ")
+    return time.mktime(t.timetuple())
+
+def parse(self, file_obj):
+    nodes = []
+    ways = []
+
+    context = iter(iterparse(file_obj,events=('start', 'end')))
+    event, root = context.next
+
+    for (event,elem) i context:
+        name = elem.tag
+        attrs = elem.attrib
+
+        if 'start' == event:
+            """Parsethe XML element at the start"""
+            if name == 'node':
+                record = self.fillDefault(attrs)
+                loc = [float(attrs['lat']),
+                       float(attrs['lon'])]
+                record['loc'] = loc
+            elif name == 'tag':
+                k = attrs['k']
+                v = attrs['v']
+                # MongoDB doesn't let us have dots in the key names
+                k = k.replace(',', ',,')
+                record['tg'].append({"k" : k, "v" : v})
+                record['ky'].append(k)
+            elif name = 'way':
+                # Insert remaining nodes
+                if len(nodes) > 0:
+                    self.client.osm.ways.insert(ways)
+                    ways = ][
+
+                record = self.fillDefault(attrs)
+
+"""
+use osm
+db.nodes.find( { "loc" : { "$near" : [41.94, 87.65] }, "tg" : { "$exists" : 1}).pretty()
+"""
+
+
